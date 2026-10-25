@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$packageRoot = realpath(__DIR__ . '/..');
+$proxyAutoload = $GLOBALS['_composer_autoload_path'] ?? null;
+
+if (is_string($proxyAutoload)) {
+    // Launched through the consuming project's vendor/bin proxy (Composer >= 2.2 sets this
+    // global to that project's vendor/autoload.php). That autoloader is the one that knows
+    // Magento\Setup\Module\I18n. Checked first because it also holds for `path` repository
+    // installs, where realpath() below would resolve the symlink back to this checkout.
+    require $proxyAutoload;
+} elseif (is_file($packageRoot . '/vendor/autoload.php')) {
+    // Standalone: this repo was cloned and `composer install` was run directly inside it,
+    // so it has its own vendor/ folder. Magento's i18n classes are not part of it; they are
+    // only available when a Magento autoloader is preloaded by the caller (see README).
+    require $packageRoot . '/vendor/autoload.php';
+} else {
+    // Executed directly as <magentoRoot>/vendor/<vendor-name>/<package-name>/bin/i18n, i.e.
+    // two directory segments below vendor/, so the project's autoloader is three levels up.
+    /** @noinspection PhpIncludeInspection */
+    require dirname($packageRoot, 3) . '/vendor/autoload.php';
+}
+
+/** @noinspection PhpUnhandledExceptionInspection */
+exit(SergiyNezbritskiy\TranslationsChecker\Console\ApplicationFactory::create()->run());

@@ -1,0 +1,17 @@
+{
+    "name": "sergiynezbritskiy/module-dummy",
+    "description": "Dummy Magento 2 module with one phrase per translation source, used to exercise magento2-translations-checker.",
+    "type": "magento2-module",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.3"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "SergiyNezbritskiy\\Dummy\\": ""
+        }
+    }
+}

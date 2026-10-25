@@ -1,0 +1,14 @@
+parameters:
+    level: 6
+    paths:
+        - src
+        - tests
+    excludePaths:
+        # Fixture module parsed by Magento's phrase collector; it is not project code.
+        - tests/fixtures/*
+    ignoreErrors:
+        # Magento classes exist only in the Magento 2 project this tool is installed into,
+        # never in the standalone development checkout, so they are unknown to PHPStan here.
+        -
+            message: '#Magento\\#'
+            path: src/Collector/MagentoPhraseCollector.php

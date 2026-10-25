@@ -1,0 +1,6 @@
+<p><?= $block->escapeHtml(__('Template phrase')) ?></p>
+<script>
+    require(['mage/translate'], function ($t) {
+        console.log($t('Js in template'));
+    });
+</script>
