@@ -65,10 +65,11 @@ m2 *args:
     just m2-php XDEBUG_MODE=off php build/magento/bin/magento {{args}}
 alias m := m2
 
-# Run the checker from the sandbox's vendor/bin against the dummy module
+# Run the checker from the sandbox's vendor/bin against the dummy module; args pass verbatim, e.g. `just i18n --allow-identical='(+ %1)'`
 [group('magento2')]
+[positional-arguments]
 i18n *args='--languages=ru_RU,uk_UA':
-    just m2-php XDEBUG_MODE=off php build/magento/vendor/bin/i18n --source=build/magento/vendor/sergiynezbritskiy/module-dummy {{args}}
+    {{DOCKER_COMPOSE}} run --rm -e XDEBUG_MODE=off magento php build/magento/vendor/bin/i18n --source=build/magento/vendor/sergiynezbritskiy/module-dummy "$@"
 
 # Regenerate the dummy module's en_US.csv with Magento's own command (parity reference)
 [group('magento2')]

@@ -54,6 +54,15 @@ final class CheckCommand extends Command
                 'Locale(s) to check, e.g. --languages=ru_RU --languages=uk_UA or --languages=ru_RU,uk_UA.',
                 [],
             )
+            ->addOption(
+                'allow-identical',
+                null,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+                'Phrase whose translation may be identical to the phrase itself (e.g. "ID" or "(+ %1)"), '
+                . 'so such a row is not reported as untranslated. The row must still exist. Repeat the '
+                . 'option for each phrase; values are not split on commas.',
+                [],
+            )
             ->addOption('colors', null, InputOption::VALUE_NEGATABLE, 'Use colors in screen output.', false);
     }
 
@@ -69,10 +78,12 @@ final class CheckCommand extends Command
         /** @var string[] $rawLanguages */
         $rawLanguages = $input->getOption('languages');
         $languages = $this->resolveLanguages($rawLanguages);
+        /** @var string[] $allowedIdentical */
+        $allowedIdentical = $input->getOption('allow-identical');
 
         $phrases = $this->collector->collect($source);
         $reader = new DictionaryReader();
-        $checker = new TranslationChecker();
+        $checker = new TranslationChecker($allowedIdentical);
         $results = [];
         $skippedLocales = [];
 

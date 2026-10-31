@@ -9,10 +9,23 @@ namespace SergiyNezbritskiy\TranslationsChecker\Model;
  *
  * A translation that equals its phrase counts as untranslated: Magento drops such rows when
  * loading dictionaries (\Magento\Framework\Translate::_addData), so at runtime they behave
- * exactly like missing ones.
+ * exactly like missing ones. Phrases passed as $allowedIdentical are the exception: for them an
+ * identical translation is intended ("ID", "(+ %1)") and counts as translated. Their row is still
+ * required, so a phrase never added to the dictionary is reported as missing.
  */
 final class TranslationChecker
 {
+    /** @var array<int|string, true> phrase => true */
+    private readonly array $allowedIdentical;
+
+    /**
+     * @param string[] $allowedIdentical phrases whose translation may equal the phrase
+     */
+    public function __construct(array $allowedIdentical = [])
+    {
+        $this->allowedIdentical = array_fill_keys($allowedIdentical, true);
+    }
+
     /**
      * @param list<string> $phrases
      * @param array<int|string, string> $dictionary phrase => translation
@@ -30,9 +43,7 @@ final class TranslationChecker
                 continue;
             }
 
-            $translation = $dictionary[$phrase];
-
-            if ($translation === '' || $translation === $phrase) {
+            if ($this->isUntranslated($phrase, $dictionary[$phrase])) {
                 $untranslated[] = $phrase;
 
                 continue;
@@ -47,5 +58,14 @@ final class TranslationChecker
         );
 
         return new LanguageResult($locale, $translated, $missing, $untranslated, $obsolete);
+    }
+
+    private function isUntranslated(string $phrase, string $translation): bool
+    {
+        if ($translation === '') {
+            return true;
+        }
+
+        return $translation === $phrase && !isset($this->allowedIdentical[$phrase]);
     }
 }

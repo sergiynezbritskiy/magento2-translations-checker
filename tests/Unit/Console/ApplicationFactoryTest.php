@@ -9,6 +9,8 @@ use SergiyNezbritskiy\TranslationsChecker\Tests\Support\InMemoryPhraseCollector;
 use SergiyNezbritskiy\TranslationsChecker\Tests\Support\TemporaryDirectory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Tester\ApplicationTester;
 
 /**
@@ -48,6 +50,40 @@ final class ApplicationFactoryTest extends TestCase
 
         self::assertSame(Command::INVALID, $exitCode);
         self::assertStringContainsString('At least one --languages=<locale> is required', $tester->getDisplay());
+    }
+
+    /**
+     * Raw argv as the shell hands it over for `--allow-identical='(+ %1)' --allow-identical='Yes, No'`.
+     */
+    public function testAllowIdenticalValuesAreParsedFromArgvVerbatim(): void
+    {
+        file_put_contents($this->tmpDir->path('i18n/uk_UA.csv'), "\"(+ %1)\",\"(+ %1)\"\n\"Yes, No\",\"Yes, No\"\n");
+        $application = ApplicationFactory::create(new InMemoryPhraseCollector(['(+ %1)', 'Yes, No']));
+        $application->setAutoExit(false);
+        $output = new BufferedOutput();
+
+        $exitCode = $application->run(new ArgvInput([
+            'bin/i18n',
+            '--source=' . $this->tmpDir->path(),
+            '--languages=uk_UA',
+            '--allow-identical=(+ %1)',
+            '--allow-identical',
+            'Yes, No',
+        ]), $output);
+        $display = $output->fetch();
+
+        self::assertSame(Command::SUCCESS, $exitCode, $display);
+        self::assertStringContainsString('uk_UA: 2 ok, 0 missing, 0 untranslated, 0 obsolete.', $display);
+    }
+
+    public function testHelpDescribesAllowIdentical(): void
+    {
+        $tester = $this->createTester([]);
+
+        $tester->run(['--help' => true]);
+
+        self::assertStringContainsString('--allow-identical=ALLOW-IDENTICAL', $tester->getDisplay());
+        self::assertStringContainsString('may be identical to the phrase itself', $tester->getDisplay());
     }
 
     public function testDefaultCollectorIsMagentoBacked(): void

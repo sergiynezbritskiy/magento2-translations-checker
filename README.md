@@ -34,6 +34,7 @@ vendor/bin/i18n --source=/path/to/module/src --translations=/path/to/module/src/
 | `--source=<dir>`        | Required. Directory to collect phrases from, the same one you pass to `i18n:collect-phrases`.               |
 | `--translations=<dir>`  | Directory with `<locale>.csv` dictionaries. Defaults to `<source>/i18n`.                                     |
 | `--languages=<locale>`  | Required, repeatable. Locales to check. `--languages=ru_RU,uk_UA` is accepted too.                           |
+| `--allow-identical=<phrase>` | Repeatable. A phrase whose translation may be identical to the phrase (e.g. `ID`, `(+ %1)`). Not split on commas. See below. |
 | `--colors`/`--no-colors`| Use colors in screen output (off by default).                                                                |
 | `-v`                    | Also list the phrases that are translated correctly.                                                         |
 
@@ -43,8 +44,31 @@ For every locale `<L>` the file `<translations>/<L>.csv` is compared with the co
 
 - **missing**: the phrase has no row in the dictionary;
 - **untranslated**: the row exists but the translation is empty or identical to the phrase
-  (Magento drops such rows when loading a dictionary, so they are untranslated at runtime);
+  (Magento drops such rows when loading a dictionary, so they are untranslated at runtime); an
+  identical translation is accepted for the phrases listed with `--allow-identical`;
 - **obsolete**: the dictionary has a row for a phrase that no longer exists in `--source`.
+
+### Phrases that are the same in every language
+
+Some phrases legitimately stay the same after translation, e.g. `ID` or `(+ %1)`. List each of them
+with `--allow-identical` (once per phrase; the value is taken verbatim and never split on commas, since
+phrases may contain them). For such a phrase:
+
+- a row whose translation equals the phrase counts as **ok** instead of untranslated;
+- an empty translation is still **untranslated**;
+- a missing row is still reported as **missing**. At runtime Magento treats a missing row and an
+  identical one the same way, but requiring the row keeps the dictionaries complete (they stay equal
+  to the `i18n:collect-phrases` output) and makes the "same as the source" decision explicit in each
+  locale's file, so a phrase that was simply forgotten in one language is still caught;
+- obsolete detection is not affected.
+
+Quote values containing spaces, parentheses or `%`. In a module's `composer.json`:
+
+```json
+"scripts": {
+    "i18n": "html/vendor/bin/i18n --source=src --languages=uk_UA,ru_RU --allow-identical=ID --allow-identical='(+ %1)' --colors"
+}
+```
 
 `en_US` is the locale the phrases are written in, so it is never checked and is reported as skipped
 if listed. A dictionary file that does not exist is treated as empty.

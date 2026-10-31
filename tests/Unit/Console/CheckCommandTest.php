@@ -119,6 +119,67 @@ final class CheckCommandTest extends TestCase
         self::assertStringContainsString('ru_RU: 1 ok', $tester->getDisplay());
     }
 
+    public function testIdenticalTranslationFailsWithoutAllowIdentical(): void
+    {
+        $this->writeDictionary('uk_UA', "ID,ID\n");
+        $tester = $this->createTester(['ID']);
+
+        $exitCode = $tester->execute(['--source' => $this->tmpDir->path(), '--languages' => ['uk_UA']]);
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertStringContainsString('[uk_UA] untranslated "ID"', $tester->getDisplay());
+    }
+
+    public function testAllowIdenticalAcceptsIdenticalTranslations(): void
+    {
+        $this->writeDictionary('uk_UA', "ID,ID\n\"(+ %1)\",\"(+ %1)\"\nBack,Назад\n");
+        $this->writeDictionary('ru_RU', "ID,ID\n\"(+ %1)\",\"(+ %1)\"\nBack,Назад\n");
+        $tester = $this->createTester(['ID', '(+ %1)', 'Back']);
+
+        $exitCode = $tester->execute([
+            '--source' => $this->tmpDir->path(),
+            '--languages' => ['uk_UA,ru_RU'],
+            '--allow-identical' => ['ID', '(+ %1)'],
+        ]);
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertStringContainsString('uk_UA: 3 ok, 0 missing, 0 untranslated, 0 obsolete.', $tester->getDisplay());
+        self::assertStringContainsString('ru_RU: 3 ok, 0 missing, 0 untranslated, 0 obsolete.', $tester->getDisplay());
+    }
+
+    public function testAllowIdenticalStillReportsMissingRow(): void
+    {
+        $this->writeDictionary('uk_UA', "Back,Назад\n");
+        $tester = $this->createTester(['ID', 'Back']);
+
+        $exitCode = $tester->execute([
+            '--source' => $this->tmpDir->path(),
+            '--languages' => ['uk_UA'],
+            '--allow-identical' => ['ID'],
+        ]);
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertStringContainsString('[uk_UA] missing      "ID"', $tester->getDisplay());
+    }
+
+    public function testAllowIdenticalValueIsNotSplitOnCommas(): void
+    {
+        $this->writeDictionary('uk_UA', "\"Yes, No\",\"Yes, No\"\nYes,Yes\nNo,Так\n");
+        $tester = $this->createTester(['Yes, No', 'Yes', 'No']);
+
+        $exitCode = $tester->execute([
+            '--source' => $this->tmpDir->path(),
+            '--languages' => ['uk_UA'],
+            '--allow-identical' => ['Yes, No'],
+        ]);
+        $display = $tester->getDisplay();
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertStringContainsString('[uk_UA] untranslated "Yes"', $display);
+        self::assertStringNotContainsString('"Yes, No"', $display);
+        self::assertStringContainsString('uk_UA: 2 ok, 0 missing, 1 untranslated, 0 obsolete.', $display);
+    }
+
     public function testSourceLocaleIsSkipped(): void
     {
         $this->writeDictionary('en_US', "Back,Back\n");

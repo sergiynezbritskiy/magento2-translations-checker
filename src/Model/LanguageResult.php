@@ -10,9 +10,9 @@ namespace SergiyNezbritskiy\TranslationsChecker\Model;
 final class LanguageResult
 {
     /**
-     * @param list<string> $translated   phrases with a proper translation
+     * @param list<string> $translated   phrases with a proper translation (or an allowed identical one)
      * @param list<string> $missing      phrases absent from the dictionary
-     * @param list<string> $untranslated phrases present with an empty or identical translation
+     * @param list<string> $untranslated phrases present with an empty or (not allowed) identical translation
      * @param list<string> $obsolete     dictionary phrases that no longer exist in the source
      */
     public function __construct(

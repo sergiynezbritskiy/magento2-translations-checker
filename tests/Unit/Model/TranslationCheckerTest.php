@@ -51,6 +51,61 @@ final class TranslationCheckerTest extends TestCase
         self::assertSame([], $result->translated);
     }
 
+    public function testAllowedIdenticalTranslationIsTranslated(): void
+    {
+        $checker = new TranslationChecker(['ID', '(+ %1)']);
+
+        $result = $checker->check(
+            'uk_UA',
+            ['ID', '(+ %1)', 'Back'],
+            ['ID' => 'ID', '(+ %1)' => '(+ %1)', 'Back' => 'Back'],
+        );
+
+        self::assertSame(['ID', '(+ %1)'], $result->translated);
+        self::assertSame(['Back'], $result->untranslated);
+    }
+
+    public function testAllowedIdenticalPhraseMayStillBeTranslated(): void
+    {
+        $checker = new TranslationChecker(['ID']);
+
+        $result = $checker->check('uk_UA', ['ID'], ['ID' => 'Ід.']);
+
+        self::assertSame(['ID'], $result->translated);
+        self::assertFalse($result->hasViolations());
+    }
+
+    public function testAllowedIdenticalPhraseWithEmptyTranslationIsUntranslated(): void
+    {
+        $checker = new TranslationChecker(['ID']);
+
+        $result = $checker->check('uk_UA', ['ID'], ['ID' => '']);
+
+        self::assertSame(['ID'], $result->untranslated);
+    }
+
+    public function testAllowedIdenticalPhraseWithoutRowIsStillMissing(): void
+    {
+        $checker = new TranslationChecker(['ID']);
+
+        $result = $checker->check('uk_UA', ['ID'], []);
+
+        self::assertSame(['ID'], $result->missing);
+        self::assertSame([], $result->translated);
+        self::assertTrue($result->hasViolations());
+    }
+
+    public function testAllowedIdenticalDoesNotAffectObsoleteDetection(): void
+    {
+        $checker = new TranslationChecker(['Gone']);
+
+        $result = $checker->check('uk_UA', ['Back'], ['Back' => 'Назад', 'Gone' => 'Gone']);
+
+        self::assertSame(['Gone'], $result->obsolete);
+        self::assertSame(['Back'], $result->translated);
+        self::assertTrue($result->hasViolations());
+    }
+
     public function testDictionaryRowWithoutSourcePhraseIsObsolete(): void
     {
         $result = $this->checker->check('uk_UA', ['Back'], ['Back' => 'Назад', 'Gone' => 'Зникло']);
